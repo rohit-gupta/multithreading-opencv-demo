@@ -99,9 +99,6 @@ if __name__ == '__main__':
     process_stream = ProcessFrames(webcam_stream.frame)
     process_stream.start()
 
-    # display_stream = DisplayFrames(webcam_stream.frame)
-    # display_stream.start()
-
     fps_tracker = FPSTracker()
     fps_tracker.start()
 
@@ -115,24 +112,18 @@ if __name__ == '__main__':
 
         # Capture frame-by-frame
         input_frame = webcam_stream.frame
-        input_copy = copy.deepcopy(input_frame).astype(np.float32)
-        input_copy /= 255.0
+        input_copy = copy.deepcopy(input_frame)
 
         # Process the frame
         process_stream.input_frame = input_frame
 
-        # Display the resulting frame
-        # display_stream.frame = process_stream.output_frame
-
         cv2.putText(input_copy, "{:.2f} FPS".format(fps_tracker.get_fps()),
                     (10, 50), cv2.FONT_HERSHEY_DUPLEX, 1.0, (0, 255, 0))
 
+        output_frame = process_stream.output_frame
 
-        output_frame = process_stream.output_frame / 255.0
-
-        # print(np.median(input_copy), np.median(output_frame))
-
-        joined_disp = np.hstack((input_copy, output_frame))
+        # Requires np.uint8 with range [0,255] or np.float32 with range [0.0,1.0]
+        joined_disp = np.hstack((input_copy.astype(np.uint8), output_frame.astype(np.uint8)))
         cv2.imshow('frame', joined_disp)
         fps_tracker.tick()
 
