@@ -27,7 +27,7 @@ def image_edge_detection(img):
     :param img:
     :return:
     """
-    return filters.sobel(img).astype(np.float32)
+    return (255 * filters.sobel(img)).astype(np.float32)
 
 
 class WebcamCapture:
@@ -52,7 +52,7 @@ class WebcamCapture:
 
     def stop(self):
         self.stopped = True
-        # When everything done, release the capture
+        # When everything is done, release the capture
         self.cap.release()
 
 
@@ -61,11 +61,12 @@ class ProcessFrames:
     Thread to process frames
     """
 
-    def __init__(self, frame=None):
+    def __init__(self, func, frame=None):
         self.input_frame = frame
         self.output_frame = frame
         self.stopped = False
         self.fps_tracker = FPSTracker()
+        self.func = func
 
 
     def start(self):
@@ -76,11 +77,10 @@ class ProcessFrames:
         while not self.stopped:
             # Our operations on the frame come here
             rgb = cv2.cvtColor(self.input_frame, cv2.COLOR_BGR2RGB)
-            slic_seg_image = image_superpixel_segmentation(rgb)
-            # slic_seg_image = image_edge_detection(rgb)
+            proc_img = self.func(rgb)
 
             # cv2.imshow() expects BGR
-            self.output_frame = cv2.cvtColor(slic_seg_image, cv2.COLOR_RGB2BGR)
+            self.output_frame = cv2.cvtColor(proc_img, cv2.COLOR_RGB2BGR)
 
             # Add FPS Text to frame
             cv2.putText(self.output_frame, "{:.2f} FPS".format(self.fps_tracker.get_fps()),
@@ -96,7 +96,9 @@ if __name__ == '__main__':
     webcam_stream = WebcamCapture()
     webcam_stream.start()
 
-    process_stream = ProcessFrames(webcam_stream.frame)
+    # comment/uncomment relevant line to switch operation being performec
+    process_stream = ProcessFrames(image_superpixel_segmentation, webcam_stream.frame)
+    # process_stream = ProcessFrames(image_edge_detection, webcam_stream.frame)
     process_stream.start()
 
     fps_tracker = FPSTracker()
@@ -122,7 +124,7 @@ if __name__ == '__main__':
 
         output_frame = process_stream.output_frame
 
-        # Requires np.uint8 with range [0,255] or np.float32 with range [0.0,1.0]
+        # cv2.imshow requires np.uint8 with range [0,255] or np.float32 with range [0.0,1.0]
         joined_disp = np.hstack((input_copy.astype(np.uint8), output_frame.astype(np.uint8)))
         cv2.imshow('frame', joined_disp)
         fps_tracker.tick()
